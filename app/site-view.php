@@ -203,6 +203,24 @@ $dailyStats = $stmt->fetchAll();
             color: #667eea;
             text-decoration: none;
         }
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .user-info {
+            font-size: 14px;
+            color: #666;
+        }
+        .admin-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -342,7 +360,8 @@ $dailyStats = $stmt->fetchAll();
             padding: 16px;
             background: white;
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); 
+            margin-bottom: 20px;
         }
         .date-range-form label {
             font-size: 14px;
@@ -383,9 +402,7 @@ $dailyStats = $stmt->fetchAll();
     </style>
 </head>
 <body>
-    <div class="header">
-        <a href="/index.php" class="logo">📊 Analytics</a>
-    </div>
+    <?php require __DIR__ . '/header.php'; ?>
     
     <div class="container">
         <div class="page-header">

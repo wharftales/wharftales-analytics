@@ -185,9 +185,7 @@ unset($_SESSION['success']);
     </style>
 </head>
 <body>
-    <div class="header">
-        <a href="/index.php" class="logo">📊 Analytics</a>
-    </div>
+    <?php require __DIR__ . '/header.php'; ?>
     
     <div class="container">
         <?php if ($success): ?>

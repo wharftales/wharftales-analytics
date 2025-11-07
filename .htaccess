@@ -9,6 +9,6 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     
-    # Send everything to index.php (which uses router.php)
-    RewriteRule ^site/ index.php [L]
+    # Send /site/ URLs to index.php with original URI preserved
+    RewriteRule ^site/(.*)$ index.php [L,QSA]
 </IfModule>

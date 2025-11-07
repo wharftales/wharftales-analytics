@@ -239,9 +239,7 @@ $sites = $db->query("SELECT * FROM sites ORDER BY name ASC")->fetchAll();
     </style>
 </head>
 <body>
-    <div class="header">
-        <a href="/index.php" class="logo">📊 Analytics</a>
-    </div>
+    <?php require __DIR__ . '/header.php'; ?>
     
     <div class="container">
         <h1>User Management</h1>

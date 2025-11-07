@@ -1,23 +1,27 @@
 <?php
-// Simple PHP router - no .htaccess needed
-// This handles clean URLs like /site/1/ without Apache rewrite rules
+// Simple PHP router - handles clean URLs like /site/1/
 
-$requestUri = $_SERVER['REQUEST_URI'];
-$scriptName = $_SERVER['SCRIPT_NAME'];
-
-// Remove script name from URI to get the path
-$basePath = str_replace(basename($scriptName), '', $scriptName);
-$path = str_replace($basePath, '', $requestUri);
+// Get the request URI
+$requestUri = $_SERVER['REQUEST_URI'] ?? '';
 
 // Remove query string
-$path = strtok($path, '?');
+$path = strtok($requestUri, '?');
 
 // Remove leading/trailing slashes
 $path = trim($path, '/');
 
+// Remove base path if running in subdirectory
+$scriptName = dirname($_SERVER['SCRIPT_NAME']);
+if ($scriptName !== '/') {
+    $path = str_replace(trim($scriptName, '/') . '/', '', $path);
+}
+
 // Route: /site/{id} or /site/{id}/
 if (preg_match('#^site/(\d+)/?$#', $path, $matches)) {
     $_GET['id'] = $matches[1];
+    if (!isset($_GET['period'])) {
+        $_GET['period'] = '7d'; // Default period
+    }
     require __DIR__ . '/app/site-view.php';
     exit;
 }
@@ -30,5 +34,5 @@ if (preg_match('#^site/(\d+)/(\d+d)/?$#', $path, $matches)) {
     exit;
 }
 
-// No route matched - return false to let normal processing continue
+// No route matched
 return false;
