@@ -1,8 +1,14 @@
-# Enable rewrite engine
-RewriteEngine On
+# Optional: Enable clean URLs via PHP router
+# This .htaccess is OPTIONAL - the app works without it!
+# If you have issues, just delete this file.
 
-# Clean URL for site analytics: /site/1/ or /site/1
-RewriteRule ^site/([0-9]+)/?$ /app/site-view.php?id=$1 [L,QSA]
-
-# Clean URL for site analytics with period: /site/1/30d
-RewriteRule ^site/([0-9]+)/([0-9]+d)/?$ /app/site-view.php?id=$1&period=$2 [L,QSA]
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Don't rewrite real files or directories
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    
+    # Send everything to index.php (which uses router.php)
+    RewriteRule ^site/ index.php [L]
+</IfModule>

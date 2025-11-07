@@ -1,6 +1,14 @@
 <?php
 require_once __DIR__ . '/app/config.php';
 
+// Try router first (handles clean URLs without .htaccess)
+// Only if the URL looks like a routed path
+$requestUri = $_SERVER['REQUEST_URI'] ?? '';
+if (strpos($requestUri, '/site/') !== false && file_exists(__DIR__ . '/router.php')) {
+    require __DIR__ . '/router.php';
+    // Router will exit if it handles the request
+}
+
 if (needsSetup()) {
     header('Location: /app/install.php');
     exit;
