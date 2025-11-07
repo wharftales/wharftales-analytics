@@ -8,8 +8,10 @@ ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
 ini_set('session.cookie_samesite', 'Lax');
 
-// Start session with error suppression (in case headers already sent)
-@session_start();
+// Start session only if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
 
 // Database initialization
 function getDb() {
