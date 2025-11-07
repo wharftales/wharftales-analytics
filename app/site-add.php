@@ -12,9 +12,33 @@ $user = getCurrentUser();
 $error = '';
 $success = '';
 
+// Common timezones
+$timezones = [
+    'UTC' => 'UTC (Coordinated Universal Time)',
+    'America/New_York' => 'Eastern Time (US & Canada)',
+    'America/Chicago' => 'Central Time (US & Canada)',
+    'America/Denver' => 'Mountain Time (US & Canada)',
+    'America/Los_Angeles' => 'Pacific Time (US & Canada)',
+    'America/Anchorage' => 'Alaska',
+    'Pacific/Honolulu' => 'Hawaii',
+    'Europe/London' => 'London',
+    'Europe/Paris' => 'Paris, Berlin, Rome',
+    'Europe/Athens' => 'Athens, Istanbul',
+    'Europe/Moscow' => 'Moscow',
+    'Asia/Dubai' => 'Dubai',
+    'Asia/Kolkata' => 'Mumbai, Kolkata',
+    'Asia/Bangkok' => 'Bangkok, Hanoi',
+    'Asia/Singapore' => 'Singapore',
+    'Asia/Hong_Kong' => 'Hong Kong',
+    'Asia/Tokyo' => 'Tokyo, Osaka',
+    'Australia/Sydney' => 'Sydney, Melbourne',
+    'Pacific/Auckland' => 'Auckland',
+];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name'] ?? '');
     $domain = trim($_POST['domain'] ?? '');
+    $timezone = $_POST['timezone'] ?? 'UTC';
     
     if (empty($name)) {
         $error = "Site name is required";
@@ -27,8 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Generate unique tracking ID
             $trackingId = 'site_' . bin2hex(random_bytes(16));
             
-            $stmt = $db->prepare("INSERT INTO sites (name, domain, tracking_id) VALUES (?, ?, ?)");
-            $stmt->execute([$name, $domain, $trackingId]);
+            $stmt = $db->prepare("INSERT INTO sites (name, domain, tracking_id, timezone) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$name, $domain, $trackingId, $timezone]);
             
             $siteId = $db->lastInsertId();
             
@@ -110,15 +134,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #666;
             margin-top: 6px;
         }
-        input {
+        input, select {
             width: 100%;
             padding: 12px;
             border: 2px solid #e0e0e0;
             border-radius: 6px;
             font-size: 14px;
             transition: border-color 0.3s;
+            font-family: inherit;
         }
-        input:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: #667eea;
         }
@@ -192,6 +217,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="help-text">
                         The domain where your site is hosted (without http:// or https://). 
                         Only requests from this domain will be tracked.
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Timezone</label>
+                    <select name="timezone" required>
+                        <?php foreach ($timezones as $value => $label): ?>
+                            <option value="<?= $value ?>" <?= ($value === 'UTC') ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($label) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="help-text">
+                        The timezone for displaying analytics data and timestamps.
                     </div>
                 </div>
                 

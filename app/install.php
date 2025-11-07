@@ -31,6 +31,7 @@ function createDatabase() {
         name TEXT NOT NULL,
         domain TEXT NOT NULL,
         tracking_id TEXT UNIQUE NOT NULL,
+        timezone TEXT DEFAULT 'UTC',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
     

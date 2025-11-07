@@ -13,6 +13,29 @@ $siteId = $_GET['id'] ?? 0;
 
 $db = getDb();
 
+// Common timezones
+$timezones = [
+    'UTC' => 'UTC (Coordinated Universal Time)',
+    'America/New_York' => 'Eastern Time (US & Canada)',
+    'America/Chicago' => 'Central Time (US & Canada)',
+    'America/Denver' => 'Mountain Time (US & Canada)',
+    'America/Los_Angeles' => 'Pacific Time (US & Canada)',
+    'America/Anchorage' => 'Alaska',
+    'Pacific/Honolulu' => 'Hawaii',
+    'Europe/London' => 'London',
+    'Europe/Paris' => 'Paris, Berlin, Rome',
+    'Europe/Athens' => 'Athens, Istanbul',
+    'Europe/Moscow' => 'Moscow',
+    'Asia/Dubai' => 'Dubai',
+    'Asia/Kolkata' => 'Mumbai, Kolkata',
+    'Asia/Bangkok' => 'Bangkok, Hanoi',
+    'Asia/Singapore' => 'Singapore',
+    'Asia/Hong_Kong' => 'Hong Kong',
+    'Asia/Tokyo' => 'Tokyo, Osaka',
+    'Australia/Sydney' => 'Sydney, Melbourne',
+    'Pacific/Auckland' => 'Auckland',
+];
+
 // Check access
 if ($user['is_admin']) {
     $stmt = $db->prepare("SELECT * FROM sites WHERE id = ?");
@@ -31,6 +54,41 @@ $site = $stmt->fetch();
 if (!$site) {
     header('Location: /index.php');
     exit;
+}
+
+// Handle site update
+$error = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_site'])) {
+    $name = trim($_POST['name'] ?? '');
+    $domain = trim($_POST['domain'] ?? '');
+    $timezone = $_POST['timezone'] ?? 'UTC';
+    
+    if (empty($name)) {
+        $error = 'Site name is required';
+    } elseif (empty($domain)) {
+        $error = 'Domain is required';
+    } else {
+        $stmt = $db->prepare("UPDATE sites SET name = ?, domain = ?, timezone = ? WHERE id = ?");
+        $stmt->execute([$name, $domain, $timezone, $siteId]);
+        
+        // Reload site data
+        if ($user['is_admin']) {
+            $stmt = $db->prepare("SELECT * FROM sites WHERE id = ?");
+            $stmt->execute([$siteId]);
+        } else {
+            $stmt = $db->prepare("
+                SELECT s.* FROM sites s
+                INNER JOIN user_sites us ON s.id = us.site_id
+                WHERE s.id = ? AND us.user_id = ?
+            ");
+            $stmt->execute([$siteId, $user['id']]);
+        }
+        $site = $stmt->fetch();
+        
+        $_SESSION['success'] = 'Site updated successfully!';
+        header('Location: /app/site-settings.php?id=' . $siteId);
+        exit;
+    }
 }
 
 $trackingUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") 
@@ -182,6 +240,54 @@ unset($_SESSION['success']);
             display: block;
             margin-bottom: 8px;
         }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -192,22 +298,50 @@ unset($_SESSION['success']);
             <div class="success"><?= htmlspecialchars($success) ?></div>
         <?php endif; ?>
         
+        <?php if ($error): ?>
+            <div class="error"><?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+        
         <div class="card">
-            <h1><?= htmlspecialchars($site['name']) ?></h1>
-            <p class="subtitle">Site configuration and tracking setup</p>
+            <h1>⚙️ Site Settings</h1>
+            <p class="subtitle">Update site information and configuration</p>
             
-            <div class="info-row">
-                <div class="info-label">Domain:</div>
-                <div class="info-value"><?= htmlspecialchars($site['domain']) ?></div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Tracking ID:</div>
-                <div class="info-value"><?= htmlspecialchars($site['tracking_id']) ?></div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Created:</div>
-                <div class="info-value"><?= date('F j, Y', strtotime($site['created_at'])) ?></div>
-            </div>
+            <form method="POST">
+                <div class="form-group">
+                    <label for="name">Site Name</label>
+                    <input type="text" id="name" name="name" value="<?= htmlspecialchars($site['name']) ?>" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="domain">Domain</label>
+                    <input type="text" id="domain" name="domain" value="<?= htmlspecialchars($site['domain']) ?>" required placeholder="example.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="timezone">Timezone</label>
+                    <select id="timezone" name="timezone" required>
+                        <?php foreach ($timezones as $value => $label): ?>
+                            <option value="<?= $value ?>" <?= ($site['timezone'] ?? 'UTC') === $value ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($label) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="info-row">
+                    <div class="info-label">Tracking ID:</div>
+                    <div class="info-value"><?= htmlspecialchars($site['tracking_id']) ?></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Created:</div>
+                    <div class="info-value"><?= date('F j, Y', strtotime($site['created_at'])) ?></div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" name="update_site" class="btn btn-primary">Save Changes</button>
+                    <a href="/site/<?= $site['id'] ?>/" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
         </div>
         
         <div class="card">
@@ -232,11 +366,6 @@ unset($_SESSION['success']);
                     <li>Respects Do Not Track browser settings</li>
                 </ul>
             </div>
-        </div>
-        
-        <div style="margin-top: 20px;">
-            <a href="/site/<?= $site['id'] ?>/" class="btn btn-primary">View Analytics</a>
-            <a href="/index.php" class="btn btn-secondary">Back to Dashboard</a>
         </div>
     </div>
     
