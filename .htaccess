@@ -6,23 +6,3 @@ RewriteRule ^site/([0-9]+)/?$ /app/site-view.php?id=$1 [L,QSA]
 
 # Clean URL for site analytics with period: /site/1/30d
 RewriteRule ^site/([0-9]+)/([0-9]+d)/?$ /app/site-view.php?id=$1&period=$2 [L,QSA]
-
-# Remove .php extension for app files
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME}.php -f
-RewriteRule ^(.*)$ $1.php [L]
-
-# Security headers
-<IfModule mod_headers.c>
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "SAMEORIGIN"
-    Header set X-XSS-Protection "1; mode=block"
-    Header set Referrer-Policy "strict-origin-when-cross-origin"
-</IfModule>
-
-# Protect data directory
-<DirectoryMatch "^/.*/data/">
-    Order deny,allow
-    Deny from all
-</DirectoryMatch>
