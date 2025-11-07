@@ -7,14 +7,21 @@ define('SALT', 'change_this_to_random_string_' . md5(__DIR__));
 ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
 ini_set('session.cookie_samesite', 'Lax');
-session_start();
+
+// Start session with error suppression (in case headers already sent)
+@session_start();
 
 // Database initialization
 function getDb() {
-    $db = new PDO('sqlite:' . DB_PATH);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-    return $db;
+    try {
+        $db = new PDO('sqlite:' . DB_PATH);
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        return $db;
+    } catch (Exception $e) {
+        // If database can't be opened, it will be created during setup
+        throw $e;
+    }
 }
 
 // Check if setup is needed
