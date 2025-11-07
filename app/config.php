@@ -22,9 +22,14 @@ function needsSetup() {
     if (!file_exists(DB_PATH)) {
         return true;
     }
-    $db = getDb();
-    $result = $db->query("SELECT COUNT(*) as count FROM users")->fetch();
-    return $result['count'] == 0;
+    try {
+        $db = getDb();
+        $result = $db->query("SELECT COUNT(*) as count FROM users")->fetch();
+        return $result['count'] == 0;
+    } catch (Exception $e) {
+        // Database exists but tables don't - needs setup
+        return true;
+    }
 }
 
 // Authentication helpers
@@ -43,10 +48,14 @@ function getCurrentUser() {
     if (!isLoggedIn()) {
         return null;
     }
-    $db = getDb();
-    $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->execute([$_SESSION['user_id']]);
-    return $stmt->fetch();
+    try {
+        $db = getDb();
+        $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        return $stmt->fetch();
+    } catch (Exception $e) {
+        return null;
+    }
 }
 
 function isAdmin() {
