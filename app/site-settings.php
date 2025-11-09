@@ -91,8 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_site'])) {
     }
 }
 
-$trackingUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") 
-    . "://" . $_SERVER['HTTP_HOST'] . "/track.js";
+$trackingUrl = "https://" . $_SERVER['HTTP_HOST'] . "/track.js";
 
 $success = $_SESSION['success'] ?? '';
 unset($_SESSION['success']);
