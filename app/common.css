@@ -140,8 +140,8 @@ body {
     background: transparent;
     border: 2px solid var(--border-color);
     color: var(--text-primary);
-    font-size: 18px;
-    padding: 6px 12px;
+    font-size: 16px;
+    padding: 4px 8px;
     cursor: pointer;
 }
 

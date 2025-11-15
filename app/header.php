@@ -14,6 +14,9 @@
         <button onclick="toggleTheme()" class="btn btn-icon theme-toggle" title="Toggle theme">
             <span id="theme-icon">🌙</span>
         </button>
+        <a href="/app/two-factor.php" class="btn btn-icon" title="Two-Factor Authentication">
+            🔐
+        </a>
         <?php if ($user['is_admin']): ?>
             <a href="/app/users.php" class="btn btn-secondary">Users</a>
         <?php endif; ?>

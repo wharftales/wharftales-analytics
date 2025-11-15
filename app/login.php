@@ -24,9 +24,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->fetch();
         
         if ($user && password_verify($password, $user['password'])) {
-            $_SESSION['user_id'] = $user['id'];
-            header('Location: /index.php');
-            exit;
+            // Check if 2FA is enabled
+            if (isset($user['two_factor_enabled']) && $user['two_factor_enabled']) {
+                // Store user ID temporarily for 2FA verification
+                $_SESSION['2fa_user_id'] = $user['id'];
+                $_SESSION['2fa_timestamp'] = time();
+                header('Location: /app/verify-2fa.php');
+                exit;
+            } else {
+                // No 2FA, log in directly
+                $_SESSION['user_id'] = $user['id'];
+                header('Location: /index.php');
+                exit;
+            }
         } else {
             $error = "Invalid email or password";
         }

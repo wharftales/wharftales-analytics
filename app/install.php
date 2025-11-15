@@ -22,6 +22,9 @@ function createDatabase() {
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         is_admin INTEGER DEFAULT 0,
+        two_factor_secret TEXT DEFAULT NULL,
+        two_factor_enabled INTEGER DEFAULT 0,
+        two_factor_backup_codes TEXT DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
     
