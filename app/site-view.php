@@ -282,6 +282,11 @@ while ($currentDate <= $endDateTime) {
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
+        .page-url {
+            word-break: break-all;
+            overflow-wrap: anywhere;
+            font-size: 14px;
+        }
         .chart-container {
             height: 500px;
             margin-top: 20px;
@@ -488,7 +493,7 @@ while ($currentDate <= $endDateTime) {
                             ?>
                                 <tr>
                                     <td>
-                                        <div><?= htmlspecialchars($page['path']) ?></div>
+                                        <div class="page-url"><?= htmlspecialchars($page['path']) ?></div>
                                         <div class="bar" style="width: <?= $percentage ?>%"></div>
                                     </td>
                                     <td style="text-align: right; font-weight: 600;">
@@ -526,7 +531,7 @@ while ($currentDate <= $endDateTime) {
                             ?>
                                 <tr>
                                     <td>
-                                        <div><?= htmlspecialchars($display) ?></div>
+                                        <div class="page-url"><?= htmlspecialchars($display) ?></div>
                                         <div class="bar" style="width: <?= $percentage ?>%"></div>
                                     </td>
                                     <td style="text-align: right; font-weight: 600;">
