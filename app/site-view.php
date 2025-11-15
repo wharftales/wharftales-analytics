@@ -173,7 +173,33 @@ $stmt = $db->prepare("
     ORDER BY date ASC
 ");
 $stmt->execute([$siteId, $startDate, $endDate]);
-$dailyStats = $stmt->fetchAll();
+$rawDailyStats = $stmt->fetchAll();
+
+// Fill in missing dates with zeros
+$dailyStats = [];
+$currentDate = new DateTime(date('Y-m-d', strtotime($startDate)));
+$endDateTime = new DateTime(date('Y-m-d', strtotime($endDate)));
+
+// Create a map of existing data
+$dataMap = [];
+foreach ($rawDailyStats as $stat) {
+    $dataMap[$stat['date']] = $stat;
+}
+
+// Fill all dates in range
+while ($currentDate <= $endDateTime) {
+    $dateStr = $currentDate->format('Y-m-d');
+    if (isset($dataMap[$dateStr])) {
+        $dailyStats[] = $dataMap[$dateStr];
+    } else {
+        $dailyStats[] = [
+            'date' => $dateStr,
+            'views' => 0,
+            'visitors' => 0
+        ];
+    }
+    $currentDate->modify('+1 day');
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -181,46 +207,10 @@ $dailyStats = $stmt->fetchAll();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($site['name']) ?> - Analytics</title>
+    <script src="/app/theme.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="/app/common.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f7fa;
-            color: #333;
-        }
-        .header {
-            background: white;
-            border-bottom: 1px solid #e0e0e0;
-            padding: 0 30px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .logo {
-            font-size: 20px;
-            font-weight: 700;
-            color: #667eea;
-            text-decoration: none;
-        }
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        .user-info {
-            font-size: 14px;
-            color: #666;
-        }
-        .admin-badge {
-            background: #667eea;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-left: 8px;
-        }
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -234,7 +224,7 @@ $dailyStats = $stmt->fetchAll();
         }
         h1 {
             font-size: 28px;
-            color: #333;
+            color: var(--text-primary);
         }
         .period-selector {
             display: flex;
@@ -242,23 +232,23 @@ $dailyStats = $stmt->fetchAll();
         }
         .period-btn {
             padding: 8px 16px;
-            border: 2px solid #e0e0e0;
-            background: white;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
             text-decoration: none;
-            color: #333;
+            color: var(--text-primary);
             transition: all 0.2s;
         }
         .period-btn:hover {
-            border-color: #667eea;
+            border-color: var(--accent-primary);
         }
         .period-btn.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            border-color: var(--accent-primary);
         }
         .stats-grid {
             display: grid;
@@ -267,20 +257,17 @@ $dailyStats = $stmt->fetchAll();
             margin-bottom: 30px;
         }
         .stat-card {
-            background: white;
-            border-radius: 12px;
             padding: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
         .stat-label {
             font-size: 14px;
-            color: #666;
+            color: var(--text-secondary);
             margin-bottom: 8px;
         }
         .stat-value {
             font-size: 36px;
             font-weight: 700;
-            color: #333;
+            color: var(--text-primary);
         }
         .stat-unit {
             font-size: 14px;
@@ -288,69 +275,75 @@ $dailyStats = $stmt->fetchAll();
             margin-left: 4px;
         }
         .card {
-            background: white;
-            border-radius: 12px;
             padding: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
-        }
-        .card h2 {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #333;
-        }
-        .data-table {
-            width: 100%;
-        }
-        .data-table th {
-            text-align: left;
-            font-size: 12px;
-            font-weight: 600;
-            color: #666;
-            text-transform: uppercase;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-        .data-table td {
-            padding: 12px 0;
-            border-bottom: 1px solid #f5f5f5;
-            font-size: 14px;
-        }
-        .data-table tr:last-child td {
-            border-bottom: none;
-        }
-        .bar {
-            height: 6px;
-            background: #667eea;
-            border-radius: 3px;
-            margin-top: 6px;
         }
         .two-col {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
-        .btn {
-            padding: 8px 16px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s;
-            border: none;
-            cursor: pointer;
-            display: inline-block;
-        }
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #333;
-        }
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
         .chart-container {
-            height: 300px;
+            height: 500px;
             margin-top: 20px;
+            position: relative;
+        }
+        .chart-svg {
+            width: 100%;
+            height: 100%;
+        }
+        .line-path {
+            transition: opacity 0.3s;
+        }
+        .axis path,
+        .axis line {
+            stroke: var(--border-color);
+        }
+        .axis text {
+            fill: var(--text-secondary);
+            font-size: 11px;
+        }
+        .axis-label {
+            fill: var(--text-primary);
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .chart-legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            opacity: 0.7;
+        }
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+        }
+        .tooltip.visible {
+            opacity: 1;
         }
         .date-range-form {
             display: flex;
@@ -358,30 +351,32 @@ $dailyStats = $stmt->fetchAll();
             align-items: center;
             margin-top: 20px;
             padding: 16px;
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08); 
+            box-shadow: 0 2px 8px var(--shadow); 
             margin-bottom: 20px;
         }
         .date-range-form label {
             font-size: 14px;
             font-weight: 500;
-            color: #333;
+            color: var(--text-primary);
         }
         .date-range-form input[type="date"] {
             padding: 8px 12px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--border-color);
             border-radius: 6px;
             font-size: 14px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
         }
         .date-range-form input[type="date"]:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--accent-primary);
         }
         .date-range-form button {
             padding: 8px 20px;
-            background: #667eea;
-            color: white;
+            background: var(--accent-primary);
+            color: var(--bg-primary);
             border: none;
             border-radius: 6px;
             font-size: 14px;
@@ -389,7 +384,7 @@ $dailyStats = $stmt->fetchAll();
             cursor: pointer;
         }
         .date-range-form button:hover {
-            background: #5568d3;
+            background: var(--accent-hover);
         }
         @media (max-width: 768px) {
             .two-col {
@@ -408,7 +403,7 @@ $dailyStats = $stmt->fetchAll();
         <div class="page-header">
             <div>
                 <h1><?= htmlspecialchars($site['name']) ?></h1>
-                <p style="color: #666; margin-top: 4px;"><?= htmlspecialchars($site['domain']) ?></p>
+                <p style="color: var(--text-secondary); margin-top: 4px;"><?= htmlspecialchars($site['domain']) ?></p>
             </div>
             <div class="period-selector">
                 <a href="/site/<?= $siteId ?>/7d" class="period-btn <?= $period === '7d' ? 'active' : '' ?>">7 Days</a>
@@ -425,7 +420,7 @@ $dailyStats = $stmt->fetchAll();
             <input type="date" name="end" value="<?= $customEnd ?>" required>
             <button type="submit">Apply</button>
             <?php if ($period === 'custom'): ?>
-                <a href="/site/<?= $siteId ?>/" style="color: #667eea; text-decoration: none; font-size: 14px;">Clear</a>
+                <a href="/site/<?= $siteId ?>/" style="color: var(--accent-primary); text-decoration: none; font-size: 14px;">Clear</a>
             <?php endif; ?>
         </form>
         
@@ -451,26 +446,24 @@ $dailyStats = $stmt->fetchAll();
         <div class="card">
             <h2>📈 Daily Traffic</h2>
             <?php if (empty($dailyStats)): ?>
-                <p style="color: #666; text-align: center; padding: 40px;">No data available yet. Install the tracking script to start collecting data.</p>
+                <p style="color: var(--text-secondary); text-align: center; padding: 40px;">No data available yet. Install the tracking script to start collecting data.</p>
             <?php else: ?>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Pageviews</th>
-                            <th>Visitors</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($dailyStats as $stat): ?>
-                            <tr>
-                                <td><?= date('M j, Y', strtotime($stat['date'])) ?></td>
-                                <td><?= number_format($stat['views']) ?></td>
-                                <td><?= number_format($stat['visitors']) ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <div class="chart-container">
+                    <svg id="traffic-chart" class="chart-svg"></svg>
+                    <div class="tooltip" id="chart-tooltip"></div>
+                </div>
+                <div class="chart-legend">
+                    <label class="legend-item" style="cursor: pointer;">
+                        <input type="checkbox" id="toggle-pageviews" checked>
+                        <div class="legend-color" style="background: var(--chart-dark);"></div>
+                        <span>Pageviews</span>
+                    </label>
+                    <label class="legend-item" style="cursor: pointer;">
+                        <input type="checkbox" id="toggle-visitors" checked>
+                        <div class="legend-color" style="background: var(--chart-light);"></div>
+                        <span>Unique Visitors</span>
+                    </label>
+                </div>
             <?php endif; ?>
         </div>
         
@@ -478,7 +471,7 @@ $dailyStats = $stmt->fetchAll();
             <div class="card">
                 <h2>📄 Top Pages</h2>
                 <?php if (empty($topPages)): ?>
-                    <p style="color: #666;">No data yet</p>
+                    <p style="color: var(--text-secondary);">No data yet</p>
                 <?php else: ?>
                     <table class="data-table">
                         <thead>
@@ -511,7 +504,7 @@ $dailyStats = $stmt->fetchAll();
             <div class="card">
                 <h2>🔗 Top Referrers</h2>
                 <?php if (empty($topReferrers)): ?>
-                    <p style="color: #666;">No data yet</p>
+                    <p style="color: var(--text-secondary);">No data yet</p>
                 <?php else: ?>
                     <table class="data-table">
                         <thead>
@@ -551,7 +544,7 @@ $dailyStats = $stmt->fetchAll();
             <div class="card">
                 <h2>🌐 Browsers</h2>
                 <?php if (empty($browsers)): ?>
-                    <p style="color: #666;">No data yet</p>
+                    <p style="color: var(--text-secondary);">No data yet</p>
                 <?php else: ?>
                     <table class="data-table">
                         <tbody>
@@ -578,7 +571,7 @@ $dailyStats = $stmt->fetchAll();
             <div class="card">
                 <h2>💻 Operating Systems</h2>
                 <?php if (empty($operatingSystems)): ?>
-                    <p style="color: #666;">No data yet</p>
+                    <p style="color: var(--text-secondary);">No data yet</p>
                 <?php else: ?>
                     <table class="data-table">
                         <tbody>
@@ -637,5 +630,250 @@ $dailyStats = $stmt->fetchAll();
             <a href="/index.php" class="btn btn-secondary">← Back to Dashboard</a>
         </div>
     </div>
+    
+    <?php if (!empty($dailyStats)): ?>
+    <script>
+        // Parse PHP data into JavaScript
+        const rawData = <?= json_encode($dailyStats) ?>;
+        
+        // Process data
+        const chartData = rawData.map(d => ({
+            date: new Date(d.date),
+            pageviews: parseInt(d.views),
+            visitors: parseInt(d.visitors)
+        }));
+        
+        // Get colors from CSS variables
+        const rootStyles = getComputedStyle(document.documentElement);
+        const chartDark = rootStyles.getPropertyValue('--chart-dark').trim();
+        const chartLight = rootStyles.getPropertyValue('--chart-light').trim();
+        
+        // Set up dimensions
+        const container = document.querySelector('.chart-container');
+        const margin = { top: 40, right: 40, bottom: 60, left: 60 };
+        const width = container.clientWidth - margin.left - margin.right;
+        const height = container.clientHeight - margin.top - margin.bottom;
+        
+        // Create SVG
+        const svg = d3.select('#traffic-chart')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+        
+        // Create scales
+        const xScale = d3.scaleTime()
+            .domain(d3.extent(chartData, d => d.date))
+            .range([0, width]);
+        
+        // Calculate max value for scaling
+        const maxValue = d3.max(chartData, d => Math.max(d.pageviews, d.visitors));
+        
+        // Y scale
+        const yScale = d3.scaleLinear()
+            .domain([0, maxValue * 1.1])
+            .range([height, 0])
+            .nice();
+        
+        // Add grid lines
+        svg.append('g')
+            .attr('class', 'grid')
+            .attr('opacity', 0.1)
+            .call(d3.axisLeft(yScale)
+                .tickSize(-width)
+                .tickFormat(''));
+        
+        // Add X axis at bottom
+        svg.append('g')
+            .attr('class', 'axis')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(xScale)
+                .ticks(Math.min(chartData.length, 10))
+                .tickFormat(d3.timeFormat('%b %d')))
+            .selectAll('text')
+            .attr('transform', 'rotate(-45)')
+            .style('text-anchor', 'end');
+        
+        // Add Y axis
+        svg.append('g')
+            .attr('class', 'axis')
+            .call(d3.axisLeft(yScale)
+                .ticks(5)
+                .tickFormat(d => d.toLocaleString()));
+        
+        // Create line generators
+        const linePageviews = d3.line()
+            .x(d => xScale(d.date))
+            .y(d => yScale(d.pageviews))
+            .curve(d3.curveMonotoneX);
+        
+        const lineVisitors = d3.line()
+            .x(d => xScale(d.date))
+            .y(d => yScale(d.visitors))
+            .curve(d3.curveMonotoneX);
+        
+        // Tooltip
+        const tooltip = d3.select('#chart-tooltip');
+        
+        // Draw Pageviews line
+        const pageviewsPath = svg.append('path')
+            .datum(chartData)
+            .attr('class', 'line-path')
+            .attr('id', 'line-pageviews')
+            .attr('fill', 'none')
+            .attr('stroke', chartDark)
+            .attr('stroke-width', 3)
+            .attr('d', linePageviews);
+        
+        // Draw Visitors line  
+        const visitorsPath = svg.append('path')
+            .datum(chartData)
+            .attr('class', 'line-path')
+            .attr('id', 'line-visitors')
+            .attr('fill', 'none')
+            .attr('stroke', chartLight)
+            .attr('stroke-width', 3)
+            .attr('d', lineVisitors);
+        
+        // Animate lines
+        [pageviewsPath, visitorsPath].forEach((path, i) => {
+            const pathLength = path.node().getTotalLength();
+            path
+                .attr('stroke-dasharray', pathLength)
+                .attr('stroke-dashoffset', pathLength)
+                .transition()
+                .duration(1500)
+                .delay(i * 200)
+                .ease(d3.easeCubicInOut)
+                .attr('stroke-dashoffset', 0);
+        });
+        
+        // Add dots for pageviews
+        const pageviewsDots = svg.selectAll('.dot-pageviews')
+            .data(chartData)
+            .enter()
+            .append('circle')
+            .attr('class', 'dot-pageviews')
+            .attr('cx', d => xScale(d.date))
+            .attr('cy', d => yScale(d.pageviews))
+            .attr('r', 4)
+            .attr('fill', 'white')
+            .attr('stroke', chartDark)
+            .attr('stroke-width', 2)
+            .attr('opacity', 0)
+            .transition()
+            .delay((d, i) => 1500 + i * 30)
+            .duration(300)
+            .attr('opacity', 1);
+        
+        // Add dots for visitors
+        const visitorsDots = svg.selectAll('.dot-visitors')
+            .data(chartData)
+            .enter()
+            .append('circle')
+            .attr('class', 'dot-visitors')
+            .attr('cx', d => xScale(d.date))
+            .attr('cy', d => yScale(d.visitors))
+            .attr('r', 4)
+            .attr('fill', 'white')
+            .attr('stroke', chartLight)
+            .attr('stroke-width', 2)
+            .attr('opacity', 0)
+            .transition()
+            .delay((d, i) => 1700 + i * 30)
+            .duration(300)
+            .attr('opacity', 1);
+        
+        // Add hover interaction overlay
+        svg.append('rect')
+            .attr('width', width)
+            .attr('height', height)
+            .attr('fill', 'transparent')
+            .on('mousemove', function(event) {
+                const [mouseX] = d3.pointer(event);
+                const x0 = xScale.invert(mouseX);
+                
+                // Find closest data point
+                const bisect = d3.bisector(d => d.date).left;
+                let index = bisect(chartData, x0, 1);
+                
+                // Handle edge cases
+                if (index === 0) {
+                    index = 0;
+                } else if (index >= chartData.length) {
+                    index = chartData.length - 1;
+                } else {
+                    const d0 = chartData[index - 1];
+                    const d1 = chartData[index];
+                    // Pick closest point
+                    if (x0 - d0.date > d1.date - x0) {
+                        index = index;
+                    } else {
+                        index = index - 1;
+                    }
+                }
+                
+                const d = chartData[index];
+                if (!d) return;
+                
+                // Format date
+                const dateStr = d3.timeFormat('%B %d, %Y')(d.date);
+                
+                // Get mouse position relative to container
+                const containerRect = container.getBoundingClientRect();
+                const tooltipX = event.clientX - containerRect.left + 10;
+                const tooltipY = event.clientY - containerRect.top - 10;
+                
+                // Show tooltip
+                tooltip
+                    .classed('visible', true)
+                    .style('left', tooltipX + 'px')
+                    .style('top', tooltipY + 'px')
+                    .html(`
+                        <div style="font-weight: 600; margin-bottom: 4px;">${dateStr}</div>
+                        <div style="color: ${chartDark};">📊 Pageviews: ${d.pageviews.toLocaleString()}</div>
+                        <div style="color: ${chartLight};">👥 Visitors: ${d.visitors.toLocaleString()}</div>
+                    `);
+            })
+            .on('mouseout', function() {
+                tooltip.classed('visible', false);
+            });
+        
+        // Toggle functionality
+        document.getElementById('toggle-pageviews').addEventListener('change', function() {
+            const isChecked = this.checked;
+            d3.select('#line-pageviews')
+                .transition()
+                .duration(300)
+                .style('opacity', isChecked ? 1 : 0);
+            d3.selectAll('.dot-pageviews')
+                .transition()
+                .duration(300)
+                .style('opacity', isChecked ? 1 : 0);
+        });
+        
+        document.getElementById('toggle-visitors').addEventListener('change', function() {
+            const isChecked = this.checked;
+            d3.select('#line-visitors')
+                .transition()
+                .duration(300)
+                .style('opacity', isChecked ? 1 : 0);
+            d3.selectAll('.dot-visitors')
+                .transition()
+                .duration(300)
+                .style('opacity', isChecked ? 1 : 0);
+        });
+        
+        
+        // Handle window resize
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                location.reload();
+            }, 250);
+        });
+    </script>
+    <?php endif; ?>
 </body>
 </html>

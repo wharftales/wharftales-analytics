@@ -54,62 +54,9 @@ foreach ($sites as $site) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Analytics Platform</title>
+    <script src="/app/theme.js"></script>
+    <link rel="stylesheet" href="/app/common.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f7fa;
-            color: #333;
-        }
-        .header {
-            background: white;
-            border-bottom: 1px solid #e0e0e0;
-            padding: 0 30px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .logo {
-            font-size: 20px;
-            font-weight: 700;
-            color: #667eea;
-        }
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        .user-info {
-            font-size: 14px;
-            color: #666;
-        }
-        .btn {
-            padding: 8px 16px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s;
-            border: none;
-            cursor: pointer;
-            display: inline-block;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #333;
-        }
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -123,7 +70,7 @@ foreach ($sites as $site) {
             margin-bottom: 8px;
         }
         .page-header p {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 16px;
         }
         .sites-grid {
@@ -133,26 +80,26 @@ foreach ($sites as $site) {
             margin-top: 30px;
         }
         .site-card {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 12px;
             padding: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px var(--shadow);
             transition: all 0.3s;
             border: 2px solid transparent;
         }
         .site-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-            border-color: #667eea;
+            box-shadow: 0 8px 24px var(--shadow-hover);
+            border-color: var(--accent-primary);
         }
         .site-name {
             font-size: 20px;
             font-weight: 600;
             margin-bottom: 8px;
-            color: #333;
+            color: var(--text-primary);
         }
         .site-domain {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 14px;
             margin-bottom: 16px;
         }
@@ -161,7 +108,7 @@ foreach ($sites as $site) {
             gap: 20px;
             margin-bottom: 20px;
             padding: 16px;
-            background: #f8f9fa;
+            background: var(--bg-tertiary);
             border-radius: 8px;
         }
         .stat-item {
@@ -170,12 +117,12 @@ foreach ($sites as $site) {
         .stat-number {
             font-size: 24px;
             font-weight: 700;
-            color: #667eea;
+            color: var(--accent-primary);
             margin-bottom: 4px;
         }
         .stat-label {
             font-size: 12px;
-            color: #666;
+            color: var(--text-secondary);
             text-transform: uppercase;
             font-weight: 500;
         }
@@ -186,9 +133,9 @@ foreach ($sites as $site) {
         .empty-state {
             text-align: center;
             padding: 80px 20px;
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px var(--shadow);
         }
         .empty-state-icon {
             font-size: 64px;
@@ -197,28 +144,12 @@ foreach ($sites as $site) {
         .empty-state h2 {
             font-size: 24px;
             margin-bottom: 12px;
-            color: #333;
+            color: var(--text-primary);
         }
         .empty-state p {
-            color: #666;
+            color: var(--text-secondary);
             margin-bottom: 24px;
             font-size: 16px;
-        }
-        .success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-            padding: 12px 20px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-        }
-        .admin-badge {
-            background: #667eea;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
         }
     </style>
 </head>

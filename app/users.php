@@ -8,6 +8,8 @@ if (needsSetup()) {
 
 requireLogin();
 
+$user = getCurrentUser();
+
 if (!isAdmin()) {
     header('Location: /index.php');
     exit;
@@ -45,9 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // Handle user deletion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
     $userId = $_POST['user_id'] ?? 0;
-    $currentUser = getCurrentUser();
     
-    if ($userId == $currentUser['id']) {
+    if ($userId == $user['id']) {
         $error = "You cannot delete your own account";
     } else {
         try {
@@ -72,50 +73,29 @@ $sites = $db->query("SELECT * FROM sites ORDER BY name ASC")->fetchAll();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management - Analytics Platform</title>
+    <script src="/app/theme.js"></script>
+    <link rel="stylesheet" href="/app/common.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f7fa;
-            color: #333;
-        }
-        .header {
-            background: white;
-            border-bottom: 1px solid #e0e0e0;
-            padding: 0 30px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .logo {
-            font-size: 20px;
-            font-weight: 700;
-            color: #667eea;
-            text-decoration: none;
-        }
         .container {
             max-width: 1000px;
             margin: 40px auto;
             padding: 0 30px;
         }
         .card {
-            background: white;
-            border-radius: 12px;
             padding: 32px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
         }
         h1 {
             font-size: 28px;
             margin-bottom: 8px;
+            color: var(--text-primary);
         }
         h2 {
             font-size: 20px;
             margin-bottom: 20px;
+            color: var(--text-primary);
         }
         .subtitle {
-            color: #666;
+            color: var(--text-secondary);
             margin-bottom: 30px;
             font-size: 14px;
         }
@@ -125,7 +105,7 @@ $sites = $db->query("SELECT * FROM sites ORDER BY name ASC")->fetchAll();
         label {
             display: block;
             margin-bottom: 8px;
-            color: #333;
+            color: var(--text-primary);
             font-weight: 500;
             font-size: 14px;
         }
@@ -134,14 +114,16 @@ $sites = $db->query("SELECT * FROM sites ORDER BY name ASC")->fetchAll();
         input[type="password"] {
             width: 100%;
             padding: 12px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--border-color);
             border-radius: 6px;
             font-size: 14px;
             transition: border-color 0.3s;
+            background: var(--bg-primary);
+            color: var(--text-primary);
         }
         input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--accent-primary);
         }
         .checkbox-group {
             display: flex;
@@ -153,55 +135,14 @@ $sites = $db->query("SELECT * FROM sites ORDER BY name ASC")->fetchAll();
             height: 18px;
             cursor: pointer;
         }
-        .btn {
-            padding: 10px 20px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s;
-            border: none;
-            cursor: pointer;
-            display: inline-block;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #333;
-        }
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-        .btn-danger:hover {
-            background: #c82333;
-        }
         .data-table {
-            width: 100%;
             margin-top: 20px;
         }
         .data-table th {
-            text-align: left;
-            font-size: 12px;
-            font-weight: 600;
-            color: #666;
-            text-transform: uppercase;
             padding: 12px;
-            border-bottom: 2px solid #f0f0f0;
         }
         .data-table td {
             padding: 16px 12px;
-            border-bottom: 1px solid #f5f5f5;
-            font-size: 14px;
         }
         .badge {
             display: inline-block;
@@ -211,30 +152,12 @@ $sites = $db->query("SELECT * FROM sites ORDER BY name ASC")->fetchAll();
             font-weight: 600;
         }
         .badge-admin {
-            background: #667eea;
-            color: white;
+            background: var(--accent-primary);
+            color: var(--bg-primary);
         }
         .badge-user {
-            background: #e0e0e0;
-            color: #666;
-        }
-        .error {
-            background: #fee;
-            border: 1px solid #fcc;
-            color: #c33;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-        .success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
         }
     </style>
 </head>
@@ -310,7 +233,7 @@ $sites = $db->query("SELECT * FROM sites ORDER BY name ASC")->fetchAll();
                             </td>
                             <td><?= date('M j, Y', strtotime($u['created_at'])) ?></td>
                             <td>
-                                <?php if ($u['id'] != getCurrentUser()['id']): ?>
+                                <?php if ($u['id'] != $user['id']): ?>
                                     <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this user?');">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
